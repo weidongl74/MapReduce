@@ -3,10 +3,16 @@ package mapreduce
 import (
 	"hash/fnv"
 	"fmt"
-        "io"
         "io/ioutil"
+	"os"
 	"encoding/json"
 )
+
+func checkError(err error) {
+	if err != nil {
+		panic (err)
+	}
+}
 
 func doMap(
 	jobName string, // the name of the MapReduce job
@@ -58,21 +64,29 @@ func doMap(
 	// Your code here (Part I).
 	//
 	
-	contents, error := ioutil.ReadFile(inFile)
-	if e != nil {
-		panic (e)
-	}
+	buffer, err := ioutil.ReadFile(inFile)
+	checkError(err)
+
+	contents := string(buffer)
 	
-	encoders := make([]*Encoder, nReduce)
+	encoders := make([]*json.Encoder, nReduce)
 	for reduceTask := 0; reduceTask < nReduce; reduceTask++ {
 		fileName := reduceName(jobName, mapTask, reduceTask)
-		encoders[reduceTask] = json.NewEncoder(fileName)
+		fmt.Println(fileName)
+
+		file, err := os.Create(fileName)
+		checkError(err)
+		
+		defer file.Close()
+
+
+		encoders[reduceTask] = json.NewEncoder(file)
 	}
 
-	kvs = mapF(filename, contents)
-	for kv := range kvs {
+	kvs := mapF(inFile, contents)
+	for _, kv := range kvs {
 		reduceTask := ihash(kv.Key) % nReduce
-		encoders[kv].Encode(&kv)			
+		encoders[reduceTask].Encode(&kv)			
 	}
 }
 
