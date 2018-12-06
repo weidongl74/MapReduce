@@ -79,14 +79,14 @@ func doMap(
 		
 		defer file.Close()
 
-
 		encoders[reduceTask] = json.NewEncoder(file)
 	}
 
 	kvs := mapF(inFile, contents)
 	for _, kv := range kvs {
 		reduceTask := ihash(kv.Key) % nReduce
-		encoders[reduceTask].Encode(&kv)			
+		err = encoders[reduceTask].Encode(&kv)	
+		checkError(err)		
 	}
 }
 

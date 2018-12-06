@@ -1,5 +1,12 @@
 package mapreduce
 
+import (
+	"sort"
+	"os"
+	"fmt"
+	"encoding/json"
+)
+
 func doReduce(
 	jobName string, // the name of the whole MapReduce job
 	reduceTask int, // which reduce task this is
@@ -44,4 +51,50 @@ func doReduce(
 	//
 	// Your code here (Part I).
 	//
+	
+	var mapperKvMap map[string][]string
+	var sortedKeys []string
+ 	
+	// Read each output of the mapper
+	for mapTask := 0; mapTask < nMap; mapTask++ {
+		fileName := reduceName(jobName, mapTask, reduceTask)
+		fmt.Println(fileName)
+
+		file, err := os.Open(fileName)
+		checkError(err)
+		
+		defer file.Close()
+
+		decoder := json.NewDecoder(file)
+		
+		for decoder.More() {
+			var mapperKv KeyValue
+			err := decoder.Decode(&mapperKv)
+			checkError(err)
+			
+			fmt.Println(mapperKv.Key)
+			fmt.Println(mapperKv.Value)
+			
+			mapperKvMap[mapperKv.Key] = append(mapperKvMap[mapperKv.Key], mapperKv.Value)
+			sortedKeys = append(sortedKeys, mapperKv.Key)
+		}
+	}
+	//Sort the keys	
+	sort.Strings(sortedKeys)
+	
+	// Create output file
+	file, err := os.Create(outFile)
+	checkError(err)
+	defer file.Close()
+	encoder := json.NewEncoder(file)
+	
+	// Call reducer and write to output file
+	for _, key := range(sortedKeys) {
+		reduceValue := reduceF(key, mapperKvMap[key])
+		
+		kv := KeyValue{key, reduceValue}
+		err = encoder.Encode(&kv)
+		checkError(err)
+	}
+
 }
