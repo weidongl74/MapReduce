@@ -3,7 +3,6 @@ package mapreduce
 import (
 	"sort"
 	"os"
-	"fmt"
 	"encoding/json"
 )
 
@@ -52,29 +51,23 @@ func doReduce(
 	// Your code here (Part I).
 	//
 	
-	var mapperKvMap map[string][]string
+	var mapperKvMap map[string][]string = make(map[string][]string)
 	var sortedKeys []string
- 	
 	// Read each output of the mapper
 	for mapTask := 0; mapTask < nMap; mapTask++ {
 		fileName := reduceName(jobName, mapTask, reduceTask)
-		fmt.Println(fileName)
-
+		
 		file, err := os.Open(fileName)
 		checkError(err)
 		
 		defer file.Close()
 
 		decoder := json.NewDecoder(file)
-		
 		for decoder.More() {
 			var mapperKv KeyValue
 			err := decoder.Decode(&mapperKv)
 			checkError(err)
-			
-			fmt.Println(mapperKv.Key)
-			fmt.Println(mapperKv.Value)
-			
+
 			mapperKvMap[mapperKv.Key] = append(mapperKvMap[mapperKv.Key], mapperKv.Value)
 			sortedKeys = append(sortedKeys, mapperKv.Key)
 		}
